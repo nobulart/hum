@@ -1,0 +1,8 @@
+# Python
+__pycache__/
+*.pyc
+.DS_Store
+
+# Local DREAMS runtime state (per-install, not part of the scaffold)
+*.local.md
+state/

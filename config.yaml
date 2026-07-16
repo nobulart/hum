@@ -1,0 +1,47 @@
+# HUM skill-set manifest
+# A conceptual scaffold for the DREAMS (slow-cognition / subconscious) agent subsystem.
+# This is the "sensible state for a new install" — committed before real use shapes it.
+
+name: hum
+description: >
+  DREAMS system: a controlled form of agent slow cognition. Captures unresolved
+  observations, behavioural defaults, and speculative links at night; surfaces,
+  evaluates, and promotes them only when they demonstrate persistent value.
+version: 0.1.0
+author: nobulart
+
+# Skills included in this set. Paths are relative to the repository root.
+skills:
+  - name: dreams-capture
+    path: skills/dreams-capture
+    status: released
+    note: >
+      Safe to lock — encodes the stable capture format with no v1 behavioural
+      assumptions baked in.
+
+# Deferred (planned but NOT shipped yet — see BUILD.md "Next build steps").
+# These are scaffolded as names only so the structure is visible for a new install.
+deferred:
+  - name: dreams-surface
+    trigger: 07:00 cron or "surface the dreams"
+    blocks_on: scripts/surface.py
+    status: pending-v1
+  - name: dreams-promote
+    trigger: evaluating a surfaced fragment
+    blocks_on: one full DREAMS cycle completed manually
+    status: pending-v1
+
+# Canonical file layout for a new install (relative to a project workspace).
+files:
+  - DREAMS_PROTOCOL.md   # normative spec (the hardened protocol)
+  - DREAMS.md            # night accumulation
+  - SURFACE.md           # morning surfacing
+  - DREAMS_DAY.md        # day processing
+  - SUBCONSCIOUS.md      # deep store
+  - DREAMS_ARCHIVE.md    # tombstones
+  - BUILD.md             # build log
+
+# Storage decision (resolved 2026-07-16):
+#   Structured state = YAML front matter embedded in each Markdown fragment.
+#   NO external JSON or SQLite. Dropped artifact: DREAMS_STATE.json.
+# See DREAMS_PROTOCOL.md §Core Files and BUILD.md.
