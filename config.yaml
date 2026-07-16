@@ -1,47 +1,54 @@
 # HUM skill-set manifest
-# A conceptual scaffold for the DREAMS (slow-cognition / subconscious) agent subsystem.
-# This is the "sensible state for a new install" — committed before real use shapes it.
+# Conceptual scaffold + v0.2 implementation for the DREAMS (slow-cognition /
+# subconscious) agent subsystem. See README.md "Normative target vs executable path".
 
 name: hum
 description: >
   DREAMS system: a controlled form of agent slow cognition. Captures unresolved
   observations, behavioural defaults, and speculative links at night; surfaces,
   evaluates, and promotes them only when they demonstrate persistent value.
-version: 0.1.0
+version: 0.2.0
 author: nobulart
 
-# Skills included in this set. Paths are relative to the repository root.
+# ---- surfacing configuration ----
+surfacing:
+  budget: 5                 # top-N fragments surfaced per cycle by weight
+  always_include:           # types that bypass the budget (mandatory surfacing)
+    - WARNING
+    - CONTRADICTION
+  defer_after: 3            # surface attempts before a non-selected fragment is forgotten
+  scoring: evidence_derived # unknown signals score ZERO, not a positive default
+
+# ---- skills ----
 skills:
   - name: dreams-capture
     path: skills/dreams-capture
     status: released
     note: >
-      Safe to lock — encodes the stable capture format with no v1 behavioural
-      assumptions baked in.
+      Delegates to scripts/capture.py (id generation, validation, atomic append,
+      duplicate detection). Safe to lock.
 
-# Deferred (planned but NOT shipped yet — see BUILD.md "Next build steps").
-# These are scaffolded as names only so the structure is visible for a new install.
-deferred:
+deferred:                   # structure visible; not yet shipped as skills
   - name: dreams-surface
     trigger: 07:00 cron or "surface the dreams"
-    blocks_on: scripts/surface.py
-    status: pending-v1
+    status: implemented-as-script
+    note: scripts/surface.py is the executable; promote to a skill after v1 stability.
   - name: dreams-promote
     trigger: evaluating a surfaced fragment
-    blocks_on: one full DREAMS cycle completed manually
     status: pending-v1
+    note: promotion stays manual for the first several weeks.
 
-# Canonical file layout for a new install (relative to a project workspace).
+# ---- canonical file layout for a new install ----
 files:
   - DREAMS_PROTOCOL.md   # normative spec (the hardened protocol)
-  - DREAMS.md            # night accumulation
+  - DREAMS.md            # night accumulation (generated from templates/DREAMS.md)
   - SURFACE.md           # morning surfacing
   - DREAMS_DAY.md        # day processing
   - SUBCONSCIOUS.md      # deep store
   - DREAMS_ARCHIVE.md    # tombstones
+  - DREAMS_QUARANTINE.md # invalid fragments (never silently defaulted/erased)
   - BUILD.md             # build log
 
-# Storage decision (resolved 2026-07-16):
+# Storage decision (resolved 2026-07-16, unchanged in v0.2):
 #   Structured state = YAML front matter embedded in each Markdown fragment.
 #   NO external JSON or SQLite. Dropped artifact: DREAMS_STATE.json.
-# See DREAMS_PROTOCOL.md §Core Files and BUILD.md.

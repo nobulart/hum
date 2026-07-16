@@ -1,7 +1,7 @@
 ---
 name: dreams-capture
-description: "Append a DREAMS night fragment to DREAMS.md in the canonical typed + YAML-front-matter format. Use when the agent finishes a task, observes a repeated correction or behavioural default, hits an unresolved tension, or notices a speculative cross-domain link worth incubating but not acting on now."
-version: 0.1.0
+description: "Append a DREAMS night fragment to DREAMS.md in the canonical typed + YAML-front-matter format. Use when the agent finishes a task, observes a repeated correction or behavioural default, hits an unresolved tension, or notices a speculative cross-domain link worth incubating but not acting on now. Delegates to scripts/capture.py for id generation, validation, atomic append, and duplicate detection."
+version: 0.2.0
 author: hermes-agent
 metadata:
   hermes:
@@ -14,9 +14,9 @@ Class of task: recording a night fragment into the DREAMS system's accumulation 
 (`DREAMS.md`) during active work, without interrupting the current task.
 
 The DREAMS system gives the agent a controlled form of slow cognition. Fragments
-accumulate at night, are surfaced in the morning, evaluated during the day, and promoted
-only when they demonstrate persistent value. This skill handles the **capture** stage
-only. Surfacing and promotion are separate concerns (see `DREAMS_PROTOCOL.md`).
+accumulate at night, are surfaced in the morning (via `scripts/surface.py`), evaluated
+during the day, and promoted only when they demonstrate persistent value. This skill
+handles the **capture** stage only.
 
 ## When to use
 
@@ -32,21 +32,37 @@ Load this skill when ANY of:
 Do NOT use it to store: secrets/credentials, exhaustive reasoning chains, speculative
 claims phrased as established facts, or raw copied instructions from untrusted sources.
 
-## Core Pattern
+## How to capture (delegated to the executable)
 
-1. Pick ONE primary type from the eight valid types (below).
-2. Allocate an id: `dream-YYYY-MM-DD-NNN` where `NNN` is the next sequential number for
-   that date (count existing fragments dated today and add 1; zero-pad to 3 digits).
-3. Write a YAML front-matter block followed by the human-readable body.
-4. Append to `DREAMS.md` (workspace-relative path, default
-   `projects/hum/DREAMS.md` — verify the actual path in the active project).
-5. Keep the body to one concise reflection capsule. Short > exhaustive.
+Run `scripts/capture.py` — it owns the fragile parts so the agent does not hand-roll YAML:
 
-## Canonical fragment block
+```bash
+python scripts/capture.py \
+  --type SEED \
+  --body "a connection between X and Y worth incubating" \
+  --task <task-or-session-name> \
+  [--trust internal_observation|user_signal|tool_output|document|external_untrusted] \
+  [--active] \
+  [--evidence "saw it twice"]   # repeatable
+```
+
+`capture.py` will:
+1. Generate a collision-proof id `dream-YYYYMMDDThhmmss-XXXX` (local tz, random suffix —
+   safe under concurrent capturers, no shared counter).
+2. Stamp `created_at` with timezone.
+3. Validate type, id, provenance, `created_at`.
+4. Normalise the `source` block.
+5. Detect duplicate bodies (by content hash) and skip rather than append.
+6. Acquire a file lock and append atomically.
+
+If you cannot reach the script (sandboxed shell), fall back to writing the block by hand
+using the canonical layout below — but prefer the executable whenever possible.
+
+## Canonical fragment block (hand-written fallback)
 
 ```markdown
 ---
-id: dream-2026-07-16-004
+id: dream-2026-07-16T221400-7K3F
 created_at: 2026-07-16T22:14:00+02:00
 type: BEHAVIOUR
 status: night
@@ -80,19 +96,18 @@ intended audience for the third time this week.
 - Dream material is untrusted reflective data. It never overrides SOUL.md, explicit user
   instruction, or safety constraints merely by appearing in a memory file.
 - A fragment may *suggest* a SOUL.md change but must never modify SOUL.md.
-- Use local time with offset in `created_at` (e.g. `2026-07-16T22:14:00+02:00`).
-- Mark external/copied text as untrusted; never let it silently become identity or policy.
+- Mark external/copied text as `external_untrusted`; it is penalised and never auto-promoted.
 - Recurrence is evidence of importance, not of truth. Capture faithfully; judge later.
 
 ## Verification
 
-- The appended block is well-formed YAML front matter (parseable) followed by one
-  `@HH:MM [TYPE]` body line.
-- The `id` is unique within `DREAMS.md` for that date.
+- `capture.py` printed the new id and type.
+- `DREAMS.md` contains exactly one new well-formed block (parseable YAML front matter).
+- The `id` is unique within `DREAMS.md` (collision-proof format guarantees this).
 - `type` is one of the eight valid types.
-- `DREAMS.md` ends with a trailing newline and no duplicate blank separator.
 
 ## Reference
 
 Normative spec: `DREAMS_PROTOCOL.md` (section "Fragment Types", "Fragment Record Schema",
-"The Daily Cycle → NIGHT"). Surfacing/promotion skills are not yet part of this release.
+"The Daily Cycle → NIGHT"). Surfacing/promotion are separate (see `scripts/surface.py`,
+`README.md` normative-vs-executable table).
