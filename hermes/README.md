@@ -5,13 +5,15 @@ HUM/DREAMS project depends on, so a fresh install under a Hermes harness can be
 brought up with the correct abilities (tools, skills, cron jobs, operating
 protocols) without reverse-engineering the live setup.
 
-> **Location assumption:** placed under the HUM project root
-> (`~/workspace/projects/hum/hermes/`). If you meant a top-level
-> `~/workspace/hermes/`, say so and the contents can be relocated.
+> **Location assumption:** the HUM project root lives at `~/workspace/projects/hum`
+> (this `hermes/` dir is `~/workspace/projects/hum/hermes/`). The **runtime home**
+> for per-install volatiles is `~/.hermes/hum` (NOT the repo — see BUILD.md
+> "Deployment state"). Capture/surface scripts run against `~/.hermes/hum`.
 
-> **Git status:** `~/workspace/projects/hum` is **not** a git repository at time
-> of writing. These files are not yet version-controlled. Do not commit secrets
-> (see redaction notes in the docs below).
+> **Git status:** `~/workspace/projects/hum` **is** a git repository (pushed to
+> `github.com/nobulart/hum`). However, the runtime volatiles (DREAMS*.md,
+> SURFACE.md, etc.) are git-ignored and must NOT live in the repo — they reside in
+> `~/.hermes/hum`. Do not commit secrets (see redaction notes in the docs below).
 
 ## What's in here
 
@@ -40,13 +42,13 @@ Agent-to-agent coordination uses the **file-based blackboard pattern**
 ## Quickstart (fresh install)
 
 ```bash
-# 1. Lay down HUM files + link the capture skill
-bash ~/workspace/projects/hum/hermes/bootstrap.sh ~/workspace/projects/hum
+# 1. Build ~/.hermes/hum from the repo (preserves existing volatiles), link capture skill
+bash ~/workspace/projects/hum/hermes/bootstrap.sh
 
 # 2. Re-create the cron jobs (commands printed by bootstrap.sh, or see cron.md)
 # 3. Confirm Hermes config has the ollama-local provider (config.reference.md)
 # 4. Run one manual surfacing pass to confirm the engine works:
-python3 ~/workspace/projects/hum/scripts/surface.py --dreams-dir ~/workspace/projects/hum
+python3 ~/.hermes/hum/scripts/surface.py --dreams-dir ~/.hermes/hum
 ```
 
 ## Source of truth

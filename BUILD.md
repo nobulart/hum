@@ -60,12 +60,34 @@ examples, recurrence (exact hash), tests before cron, manual promotion.
   re-run.
 
 ## Deferred to v0.3+ (research, not yet built)
+
+### v0.3 — Scientific evaluation harness (NEXT BUILD)
+The system is an experiment ("build and test that for a while") but has **no
+measurement layer** — there is no way to tell whether a surfaced or promoted
+fragment ever improved behaviour. This is the gap that blocks the core hypothesis.
+It is *infrastructure, not psychological machinery*, so it respects the v0.1→v0.2
+reviewer's "no more machinery yet" constraint and produces the ground truth that
+later makes promotion automation safe.
+
+Scope:
+- Extend `src/hum/schema.py` with outcome/feedback fields on `DREAMS_DAY.md`
+  fragments (applied?, outcome, utility_delta, evidence_refs).
+- `scripts/evaluate.py` (or `src/hum/metrics.py`): reads `DREAMS_DAY.md` +
+  `SUBCONSCIOUS.md`, computes promotion precision/recall vs later recorded outcomes,
+  emits a weekly report.
+- Append evaluation summary to the morning report (per-week: N promoted, M
+  confirmed, K contradicted).
+- Tests: synthetic outcome dataset → expected precision/recall.
+- Acceptance: harness runs on the live `~/.hermes/hum` data without crashing;
+  report produced; no new volatiles introduced into the repo.
+
+### Deferred beyond v0.3
 - Semantic (near-duplicate) recurrence.
 - Counterdream auto-generation (currently marked `PENDING` in output).
 - Cross-dream / resistance-flag machinery.
 - Lucidity debt tracking, lineage graph, dream ecology / diversity pressure, control fragments.
-- Scientific evaluation harness (the experiment's measurement layer).
-- Promotion automation (`dreams-promote` skill) — stays manual for first several weeks.
+- Promotion automation (`dreams-promote` skill) — stays manual for the first
+  several weeks until the evaluation harness has produced outcome data.
 
 ## Verification commands
 ```bash
@@ -75,8 +97,20 @@ python scripts/surface.py --dreams-dir . --dry-run
 python scripts/capture.py --type SEED --body "test" --dry-run
 ```
 
-## Deployment state
-- Local install: `~/workspace/projects/hum/` (synced with this repo).
-- Cron `cca7a54f6744` (07:00 surfacing) PAUSED pending this build + sign-off.
-- Re-enable only after: tests green on the real install, and a manual live cycle confirms
-  non-survivor preservation on the actual `DREAMS.md`.
+## Deployment state (updated 2026-07-18)
+- **Runtime home is `~/.hermes/hum`, NOT the git repo.** The git repo
+  (`~/workspace/projects/hum`) holds only non-volatile scaffold (code, templates,
+  protocol, docs). Per-install runtime volatiles (DREAMS.md, SURFACE.md,
+  DREAMS_DAY.md, SUBCONSCIOUS.md, DREAMS_ARCHIVE.md, DREAMS_QUARANTINE.md) live in
+  `~/.hermes/hum` on each machine. This was enforced after commit `76a5e17`
+  accidentally re-committed volatiles; `.gitignore` now excludes them and both
+  `HUM_DIR` (dashboard + surface cron) point at `~/.hermes/hum`.
+- `bootstrap.sh` was fixed: it now `rsync`s the repo into `HUM_DIR`, refuses to use
+  the repo itself as `HUM_DIR`, and preserves existing volatiles. It defaults
+  `HUM_DIR` to `~/.hermes/hum`.
+- Cron `cca7a54f6744` (07:00 surfacing) is **ACTIVE** on both MacBook (Plato) and
+  Mac Studio (Hermes), both pointed at `~/.hermes/hum`. Re-enable gate from v0.2.0
+  (tests green + manual live cycle) is satisfied: 22/22 pytest green on the real
+  install, and a live surfacing pass confirmed non-survivor preservation.
+- MacBook dashboard (`app.py` default) and Studio dashboard (launchd plist
+  `EnvironmentVariables`) both set `HUM_DIR=/Users/craig/.hermes/hum`.

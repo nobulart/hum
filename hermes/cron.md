@@ -88,9 +88,9 @@ Run the DREAMS morning surfacing for the local HUM install. This is a self-conta
 
 Steps:
 1. Execute the surfacing script (do NOT use --dry-run — this is the real morning pass):
-   python3 /Users/craig/workspace/projects/hum/scripts/surface.py --dreams-dir /Users/craig/workspace/projects/hum
+   python3 /Users/craig/.hermes/hum/scripts/surface.py --dreams-dir /Users/craig/.hermes/hum
    (Use the script's own config.yaml for budget/threshold — do NOT pass --threshold, because the running v0.2 engine keys off config.yaml, not a hardcoded CLI threshold.)
-2. After it runs, read /Users/craig/workspace/projects/hum/SURFACE.md to confirm the surfaced fragments were written, and confirm /Users/craig/workspace/projects/hum/DREAMS.md was reset to just its header + "## Fragments".
+2. After it runs, read /Users/craig/.hermes/hum/SURFACE.md to confirm the surfaced fragments were written, and confirm /Users/craig/.hermes/hum/DREAMS.md was reset to just its header + "## Fragments".
 3. If the script reports an error or DREAMS.md was not reset, report the failure plainly and do NOT attempt to manually edit the files.
 4. Deliver a brief Morning Surfacing summary to the user covering: how many fragments surfaced, their ids, and the highest-weight one. Keep it under 10 lines. Do not editorialize beyond the protocol.
 

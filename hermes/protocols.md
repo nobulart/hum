@@ -17,7 +17,7 @@ fragments across the whole session. Discretionary capture fails precisely when
 the signal is richest.
 
 ```bash
-cd ~/workspace/projects/hum
+cd ~/.hermes/hum
 python3 scripts/capture.py --dreams-dir . --type <TYPE> \
   --task "<session name>" --evidence "..." --body "..."
 # TYPES: OBSERVATION BEHAVIOUR ASSOCIATION QUESTION CONTRADICTION

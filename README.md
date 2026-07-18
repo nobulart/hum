@@ -62,12 +62,12 @@ Invalid fragments never enter the flow silently — they go to `DREAMS_QUARANTIN
 | File | Role |
 |---|---|
 | `DREAMS_PROTOCOL.md` | The hardened normative spec. Read this first. |
-| `DREAMS.md` | Night accumulation (generated from `templates/DREAMS.md`). |
-| `SURFACE.md` | Morning surfacing. Ranked survivors. |
-| `DREAMS_DAY.md` | Day processing. Fragments under evaluation. |
-| `SUBCONSCIOUS.md` | Deep store. Validated persistent patterns. |
-| `DREAMS_ARCHIVE.md` | Tombstones for dismissed/superseded fragments. |
-| `DREAMS_QUARANTINE.md` | Invalid fragments — never scored or erased. |
+| `DREAMS.md` | Night accumulation (generated from `templates/DREAMS.md`). Lives in `~/.hermes/hum`. |
+| `SURFACE.md` | Morning surfacing. Ranked survivors. Lives in `~/.hermes/hum`. |
+| `DREAMS_DAY.md` | Day processing. Fragments under evaluation. Lives in `~/.hermes/hum`. |
+| `SUBCONSCIOUS.md` | Deep store. Validated persistent patterns. Lives in `~/.hermes/hum`. |
+| `DREAMS_ARCHIVE.md` | Tombstones for dismissed/superseded fragments. Lives in `~/.hermes/hum`. |
+| `DREAMS_QUARANTINE.md` | Invalid fragments — never scored or erased. Lives in `~/.hermes/hum`. |
 | `BUILD.md` | Build log: decisions, scope, next steps. |
 | `config.yaml` | Skill-set manifest + surfacing config (`budget: 5`). |
 | `src/hum/` | Implementation package (schema, store, parser, scoring, recurrence, lifecycle, reports). |
@@ -96,20 +96,29 @@ Deferred (structure visible in `config.yaml`, not yet shipped as skills):
 ## Quick start
 
 ```bash
-pip install -r requirements.txt
+# Runtime home is ~/.hermes/hum (NOT this repo — see Deployment state in BUILD.md).
+# Bring it up from the repo scaffold:
+bash hermes/bootstrap.sh            # builds ~/.hermes/hum, links skill, prints cron cmds
+
+# Create an isolated venv (PEP 668: base Python is externally managed):
+python3 -m venv .venv && .venv/bin/pip install -r requirements.txt pytest
 
 # Night — capture a fragment (collision-proof id, validated, atomic):
-python scripts/capture.py --type SEED --body "a connection worth incubating" --task mytask
+.venv/bin/python scripts/capture.py --type SEED --body "a connection worth incubating" --task mytask
 
 # Morning — surface (budget + ranking; writes SURFACE.md, resets DREAMS.md):
-python scripts/surface.py --dreams-dir . --budget 5
+.venv/bin/python scripts/surface.py --dreams-dir ~/.hermes/hum
 
 # Or just see the classification without writing:
-python scripts/surface.py --dreams-dir . --dry-run
+.venv/bin/python scripts/surface.py --dreams-dir ~/.hermes/hum --dry-run
 
 # Run the test suite (validates integrity + selectivity):
-PYTEST_DISABLE_PLUGIN_AUTOLOAD=1 python -m pytest tests/ -q -p no:cacheprovider
+.venv/bin/python -m pytest tests/ -q -p no:cacheprovider
 ```
+
+> **Note:** the base interpreter is externally managed (PEP 668), so `pip install`
+> into it fails. Always use a venv (`.venv/bin/pip`, `.venv/bin/python`) as shown.
+> `requirements.txt` lists `pyyaml`; `pytest` is needed only for the suite.
 
 ## Status
 
