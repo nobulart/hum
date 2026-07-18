@@ -3,6 +3,15 @@ __pycache__/
 *.pyc
 .DS_Store
 
-# Local DREAMS runtime state (per-install, not part of the scaffold)
+# HUM / DREAMS runtime state — per-install volatiles, NOT part of the scaffold.
+# These live in HUM_DIR (default /Users/craig/.hermes/hum), never the repo.
+# They were re-committed by mistake in 76a5e17; keep them out of git.
+DREAMS.md
+DREAMS_ARCHIVE.md
+DREAMS_DAY.md
+DREAMS_QUARANTINE.md
+SURFACE.md
+SUBCONSCIOUS.md
 *.local.md
+*.lock
 state/
