@@ -16,6 +16,8 @@ export default function TopBar() {
   const toggleCommand = useStore((s) => s.toggleCommand);
   const pulling = useStore((s) => s.pulling);
   const hermesAvailable = useStore((s) => s.hermesAvailable);
+  const filterText = useStore((s) => s.filter.text);
+  const setText = useStore((s) => s.setText);
 
   const conv = model?.convergence;
   const sim = conv ? Math.round(conv.symmetry_index * 100) : 0;
@@ -46,6 +48,14 @@ export default function TopBar() {
           <span className="conv-val">{sim}%</span>
         </div>
       )}
+
+      <input
+        className="search"
+        value={filterText}
+        onChange={(e) => setText(e.target.value)}
+        placeholder="filter fragments…"
+        spellCheck={false}
+      />
 
       <div className="spacer" />
 

@@ -9,6 +9,7 @@ interface FilterState {
   trust: Set<string>;
   machine: MachineSel;
   status: Set<string>;
+  text: string;
 }
 
 interface AppState {
@@ -30,6 +31,7 @@ interface AppState {
   toggleType: (t: FragmentType) => void;
   toggleTrust: (t: string) => void;
   toggleStatus: (s: string) => void;
+  setText: (t: string) => void;
   clearFilters: () => void;
   setWebGPU: (v: boolean) => void;
   setPulling: (v: boolean) => void;
@@ -53,6 +55,7 @@ export const useStore = create<AppState>((set) => ({
     trust: new Set(),
     machine: "both",
     status: new Set(),
+    text: "",
   },
   webgpu: false,
   hermesAvailable: false,
@@ -89,9 +92,10 @@ export const useStore = create<AppState>((set) => ({
     }),
   clearFilters: () =>
     set((s) => ({
-      filter: { types: new Set(ALL_TYPES), trust: new Set(), machine: s.machine, status: new Set() },
+      filter: { types: new Set(ALL_TYPES), trust: new Set(), machine: s.machine, status: new Set(), text: "" },
       selectedId: null,
     })),
+  setText: (text) => set((s) => ({ filter: { ...s.filter, text } })),
   setWebGPU: (webgpu) => set({ webgpu }),
   setPulling: (pulling) => set({ pulling }),
   setHermesAvailable: (hermesAvailable) => set({ hermesAvailable }),

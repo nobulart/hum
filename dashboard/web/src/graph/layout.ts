@@ -1,122 +1,139 @@
-import {
-  forceSimulation,
-  forceManyBody,
-  forceLink,
-  forceCenter,
-  type Simulation,
-} from "d3-force";
 import type { Fragment, Edge } from "../types";
 
-// A layout node. We DO NOT extend d3's SimulationNodeDatum (its named
-// type export is unreliable in this toolchain); instead we keep our own
-// interface and cast at the force-simulation boundary.
+// Layout node for the HUM fragment graph.
 export interface LayoutNode {
   id: string;
   frag: Fragment;
   origin: "plato" | "hermes" | "shared" | null;
   shared: boolean;
-  index?: number;
-  x?: number;
-  y?: number;
-  z?: number;
-  vx?: number;
-  vy?: number;
-  fx?: number | null;
-  fy?: number | null;
+  layer: string;
+  layerIndex: number;
+  x: number;
+  y: number;
+  z: number;
 }
 
-type LayoutLink = {
-  source: LayoutNode | string;
-  target: LayoutNode | string;
-  kind?: string;
-  index?: number;
-};
+type LayoutLink = { source: string; target: string; kind?: string };
 
-// Nodes are clamped to this radius so they always sit inside the camera frame
-// (camera at z=18, fov=50 -> visible half-height ~8.4 units). Without it,
-// sparse/repulsive layouts fling nodes off-screen.
-const VISIBLE_R = 7;
+// Vertical stack order, top -> bottom. Mirrors the backend LAYERS constant
+// (src/hum/dashboard.py). Unknown layers fall to the bottom bucket so the view
+// never breaks when a new stratum appears.
+export const STRATA_ORDER = [
+  "DREAMS", "SURFACE", "DREAMS_DAY", "SUBCONSCIOUS",
+  "DREAMS_ARCHIVE", "DREAMS_QUARANTINE",
+];
+
+export interface Stratum {
+  layer: string;
+  index: number;
+  y: number;
+  radius: number;
+  count: number;
+}
+
+export interface LayoutResult {
+  nodes: LayoutNode[];
+  links: LayoutLink[];
+  strata: Stratum[];
+}
+
+const STRATA_GAP = 3.0; // vertical spacing between rings
+const R_MIN = 1.6; // base ring radius for a sparse stratum
+const R_K = 0.95; // density term: ring grows with sqrt(count)
+const GOLDEN = 2.399963229728653; // golden angle for even angular spread
+const VISIBLE_R = 8.0; // clamp so rings stay inside the camera frame
+
+function layerIndex(layer: string | undefined): number {
+  const i = STRATA_ORDER.indexOf((layer ?? "").toUpperCase());
+  return i >= 0 ? i : STRATA_ORDER.length;
+}
+
+// Deterministic [0,1) hash so node placement is stable across refreshes
+// (same id -> same spot), which makes the promotion tween readable.
+function hash01(s: string, salt = 0): number {
+  let h = 2166136261 ^ salt;
+  for (let i = 0; i < s.length; i++) {
+    h ^= s.charCodeAt(i);
+    h = Math.imul(h, 16777619);
+  }
+  return ((h >>> 0) % 100000) / 100000;
+}
 
 /**
- * Compute a force-directed layout of the HUM fragment graph.
+ * Deterministic strata-ring layout.
  *
- * `edgesRaw` may reference fragments not present in `nodesRaw` (e.g. the caller
- * passes the full merged edge list while the node set is filtered by the
- * machine selector). We drop any link whose endpoint is missing, because
- * d3-force's forceLink throws "node not found" on dangling endpoints.
+ * Replaces the old 2D d3-force sim (which collapsed every fragment into one
+ * plane and overlapped them). Each fragment now sits in a horizontal ring whose
+ * Y is fixed by its HUM `layer` — directly mirroring the conceptual "stacked
+ * cloud rings" model. Within a ring, fragments are spread by golden angle with
+ * small radial jitter, so they never pile up. Ring radius scales with
+ * sqrt(count) so busy strata (DREAMS) get more room.
+ *
+ * `co-occurs` edges already link fragments sharing a layer file, so intra-ring
+ * arcs and cross-ring reference lines both read naturally.
  */
-export function runLayout(nodesRaw: Fragment[], edgesRaw: Edge[]) {
-  const nodes: LayoutNode[] = nodesRaw.map((f, i) => {
-    const spread = ((parseInt(String(f.content_hash ?? i), 10) % 360) || (i * 37 % 360)) * (Math.PI / 180);
-    return {
-      id: String(f.id ?? f.content_hash ?? Math.random().toString(36).slice(2, 10)),
-      frag: f,
-      origin: (f.origin ?? null) as LayoutNode["origin"],
-      shared: !!f.shared,
-      x: Math.cos(spread) * 5,
-      y: Math.sin(spread) * 5,
-      z: 0,
-    };
-  });
+export function runLayout(nodesRaw: Fragment[], edgesRaw: Edge[]): LayoutResult {
+  const nLayers = STRATA_ORDER.length + 1; // +1 for the unknown bucket
+  const mid = (nLayers - 1) / 2;
+
+  // bucket fragments by stratum
+  const groups = new Map<string, Fragment[]>();
+  for (const f of nodesRaw) {
+    const key = String(layerIndex(f.layer));
+    if (!groups.has(key)) groups.set(key, []);
+    groups.get(key)!.push(f);
+  }
+
+  const strata: Stratum[] = [];
+  const nodes: LayoutNode[] = [];
+
+  for (const [key, frags] of groups) {
+    const li = Number(key);
+    const y = (mid - li) * STRATA_GAP;
+    const count = frags.length;
+    const radius = count <= 1 ? R_MIN * 0.5 : R_MIN + R_K * Math.sqrt(count);
+    strata.push({
+      layer: STRATA_ORDER[li] ?? "OTHER",
+      index: li,
+      y,
+      radius,
+      count,
+    });
+
+    frags.forEach((f, k) => {
+      const theta = GOLDEN * k + hash01(String(f.id ?? f.content_hash ?? k), 7) * 0.9;
+      const rJitter = (hash01(String(f.id), 13) - 0.5) * 0.5;
+      const r = count <= 1 ? 0 : radius + rJitter;
+      const id = String(f.id ?? f.content_hash ?? Math.random().toString(36).slice(2, 10));
+      nodes.push({
+        id,
+        frag: f,
+        origin: (f.origin ?? null) as LayoutNode["origin"],
+        shared: !!f.shared,
+        layer: f.layer ?? "",
+        layerIndex: li,
+        x: Math.cos(theta) * r,
+        y,
+        z: Math.sin(theta) * r,
+      });
+    });
+  }
 
   const nodeIds = new Set(nodes.map((n) => n.id));
   const links: LayoutLink[] = edgesRaw
     .filter((e) => nodeIds.has(String(e.source)) && nodeIds.has(String(e.target)))
-    .map((e) => ({ source: e.source, target: e.target, kind: e.kind }));
+    .map((e) => ({ source: String(e.source), target: String(e.target), kind: e.kind }));
 
-  try {
-    // Run the 2D force simulation manually (deterministic, fast at this scale).
-    const sim: Simulation<LayoutNode, LayoutLink> = forceSimulation<LayoutNode, LayoutLink>(
-      nodes as unknown as LayoutNode[],
-    )
-      .force(
-        "link",
-        forceLink<LayoutNode, LayoutLink>(links as any)
-          .id((d: LayoutNode) => d.id)
-          .distance(70),
-      )
-      .force("charge", forceManyBody<LayoutNode>().strength(-400))
-      .force("center", forceCenter<LayoutNode>(0, 0))
-      .stop();
-
-    const ticks = Math.min(200, 20 + nodes.length * 6);
-    for (let i = 0; i < ticks; i++) sim.tick();
-
-    clampToRadius(nodes, VISIBLE_R);
-
-    // Machine separation in Z.
-    const zMap: Record<string, number> = { plato: -4, hermes: 4, shared: 0, "null": 0 };
-    for (const n of nodes) {
-      const key = n.shared ? "shared" : String(n.origin ?? "null");
-      n.z = zMap[key] ?? 0;
-    }
-
-    return { nodes, links };
-  } catch (e) {
-    console.error("[hum-dashboard] runLayout error:", e);
-    // Graceful fallback: a visible grid (clamped) so the UI still renders.
-    for (let i = 0; i < nodes.length; i++) {
-      nodes[i].x = ((i % 5) - 2) * 2.4;
-      nodes[i].y = (Math.floor(i / 5) - 1) * 2.4;
-      nodes[i].z =
-        ((nodes[i].origin ?? "null") === "plato"
-          ? -4
-          : nodes[i].origin === "hermes"
-            ? 4
-            : 0);
-    }
-    clampToRadius(nodes, VISIBLE_R);
-    return { nodes, links };
-  }
-}
-
-function clampToRadius(nodes: LayoutNode[], R: number) {
+  // keep rings inside the visible frame
   for (const n of nodes) {
-    const r = Math.hypot(n.x ?? 0, n.y ?? 0);
-    if (r > R) {
-      const k = R / r;
-      n.x = (n.x ?? 0) * k;
-      n.y = (n.y ?? 0) * k;
+    const r = Math.hypot(n.x, n.z);
+    if (r > VISIBLE_R) {
+      const k = VISIBLE_R / r;
+      n.x *= k;
+      n.z *= k;
     }
   }
+
+  strata.sort((a, b) => a.index - b.index);
+  return { nodes, links, strata };
 }

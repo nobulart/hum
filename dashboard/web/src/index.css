@@ -56,6 +56,25 @@ body {
 /* ---- main layout ---- */
 .main { flex: 1; display: flex; min-height: 0; }
 .canvas-wrap { position: relative; flex: 1; min-width: 0; height: 100%; }
+.graph-wrap { position: absolute; inset: 0; }
+.search {
+  background: var(--bg); border: 1px solid var(--line); color: var(--text);
+  border-radius: 8px; padding: 5px 10px; font-size: 12px; width: 170px; outline: none;
+}
+.search:focus { border-color: var(--plato); }
+.search::placeholder { color: var(--muted); }
+
+/* edge legend — fixed bottom-left corner, outside the WebGL canvas */
+.legend {
+  position: absolute; left: 12px; bottom: 12px; pointer-events: none;
+  background: rgba(15, 22, 41, 0.82); border: 1px solid var(--line);
+  border-radius: 8px; padding: 8px 10px;
+  font: 10px ui-monospace, monospace; color: var(--muted);
+  display: flex; flex-direction: column; gap: 4px;
+}
+.legend-title { color: var(--text); text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 2px; }
+.legend-row { display: flex; align-items: center; gap: 6px; }
+.legend-swatch { width: 16px; height: 2px; display: inline-block; border-radius: 1px; }
 .side {
   width: 320px; border-left: 1px solid var(--line); background: var(--panel);
   overflow-y: auto; padding: 12px; display: flex; flex-direction: column; gap: 16px;
@@ -79,6 +98,10 @@ body {
 .facet-num em { font-style: normal; }
 .delta.up { color: var(--plato); }
 .delta.down { color: var(--hermes); }
+.facet-row.clickable { cursor: pointer; border-radius: 6px; padding: 2px 4px; margin: 2px -4px; transition: background 0.12s; }
+.facet-row.clickable:hover { background: var(--panel-2); }
+.facet-row.clickable.off { opacity: 0.4; }
+.facet-row.clickable.off .facet-label { text-decoration: line-through; }
 
 /* ---- flow view ---- */
 .flow { display: flex; height: 100%; gap: 24px; padding: 24px; }
