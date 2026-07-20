@@ -15,3 +15,6 @@ SUBCONSCIOUS.md
 *.local.md
 *.lock
 state/
+
+# runtime Studio pull cache (populated by POST /api/pull + hum_pull_cron.sh)
+dashboard/.cache/
