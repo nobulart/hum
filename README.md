@@ -7,6 +7,8 @@ only the fragments that survive waking scrutiny earn the right to shape future b
 
 This repository is the conceptual scaffold **and** a runnable v0.2 implementation.
 
+![HUM dashboard — live 3D graph of memory fragments with the aggregated metrics sidebar](hum.png)
+
 ## Why
 
 A machine finishes a task and idles. A human keeps running, manufacturing creative
@@ -56,6 +58,62 @@ SOUL.md            normative operating principles (never automatic)
 ```
 
 Invalid fragments never enter the flow silently — they go to `DREAMS_QUARANTINE.md`.
+
+## Dashboard
+
+A read-only web UI and JSON API for inspecting the HUM subsystem as a live graph.
+It renders the same `Fragment` model the backend builds (`src/hum/dashboard.py`) —
+there is no separate dashboard state.
+
+**Stack**
+- `dashboard/app.py` — stdlib `http.server` + Server-Sent Events. Serves the built
+  frontend from `dashboard/web/dist` and the JSON API. No FastAPI / websockets.
+- `dashboard/web/` — React + Vite + react-three-fiber / drei. `npm run build`
+  (`tsc -b && vite build`) emits `dist/`.
+
+**Run**
+```bash
+# Backend — serves :8650, builds the model and (optionally) pulls Studio at startup:
+python dashboard/app.py
+#   env: HERMES_HOST (default mac-studio.local),
+#        HERMES_CACHE_DIR (default <repo>/dashboard/.cache/hum-studio),
+#        PORT (8650), BIND (127.0.0.1)
+
+# Frontend dev server — Vite on :8651, proxies /api -> :8650:
+cd dashboard/web && npm install && npm run dev
+
+# Production build:
+cd dashboard/web && npm run build   # writes dashboard/web/dist/
+```
+
+**Graph view (v1)**
+- **Stacked strata rings.** Each fragment sits in a horizontal ring whose vertical
+  position is its HUM `layer` (DREAMS → SURFACE → DREAMS_DAY → SUBCONSCIOUS →
+  DREAMS_ARCHIVE → DREAMS_QUARANTINE). Ring radius scales with `√(count)` so busy
+  strata get more room; placement is deterministic, so a fragment promoted to a
+  deeper layer *eases down* to its new ring.
+- **Soft glowballs.** Nodes are small emissive spheres with an additive halo shell
+  (no extra scene lights). Colour = fragment `type`; a thin origin ring marks
+  Plato (cyan) / Hermes (amber) / shared (white).
+- **Edges.** `co-occurs` (intra-layer), `reference`, `recurrence` (purple),
+  `contradiction` (orange), `shared` (white). A corner legend lists them.
+- **Controls.** Machine toggle (Plato / Hermes / Both), view toggle
+  (Graph / Flow / Timeline), live convergence %, and a `pull Hermes` button
+  (POST /api/pull).
+- **Filtering.** Click a row in the right-hand Fragment-type facet to hide that
+  type; type in the `filter fragments…` box to live-filter by text. Selecting or
+  hovering a node dims everything except its neighbours.
+
+**API**
+| Route | Method | Purpose |
+|---|---|---|
+| `/api/hum` | GET | Full model: both machines' fragments, edges, facets, convergence. |
+| `/api/health` | GET | Liveness (`ok`, `hermes_available`). |
+| `/api/stream` | GET | SSE stream of model updates (re-emits on pull / file change). |
+| `/api/pull` | POST | rsync `mac-studio.local:~/.hermes/hum` → `HERMES_CACHE_DIR`, then rebuild. |
+
+The Studio pane is refreshed on a 15-minute cron (`scripts/hum_pull_cron.sh`; see
+`hermes/cron.md`). The dashboard also hot-reloads on local file changes via SSE.
 
 ## Files
 
