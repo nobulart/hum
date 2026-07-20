@@ -1,0 +1,5 @@
+# Node build deps and dev caches — never commit (regenerated via npm ci / vite).
+# The committed prebuilt UI lives in dist/ and is served directly by app.py.
+node_modules/
+.vite/
+.cache/

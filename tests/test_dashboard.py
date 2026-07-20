@@ -83,8 +83,13 @@ source:
     assert m["facets"]["by_status"]["surfaced"] == 1
     # weight histogram has exactly 3 fragments
     assert sum(m["facets"]["weight_hist"]) == 3
-    # no references / recurrence yet -> no edges
-    assert m["edges"] == []
+    # No references/recurrence in this corpus, but build_machine_model links
+    # fragments parsed from the same layer file with co-occurs edges so the
+    # graph stays connected. DREAMS.md has 2 fragments -> exactly one
+    # co-occurs edge; SURFACE.md has 1 -> none.
+    co_occurs = [e for e in m["edges"] if e["kind"] == "co-occurs"]
+    assert len(co_occurs) == 1
+    assert all(e["kind"] == "co-occurs" for e in m["edges"])
     # every fragment carries a stable content_hash and a type color lookup works
     for f in m["fragments"]:
         assert f["content_hash"]
